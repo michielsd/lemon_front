@@ -13,6 +13,14 @@
         size="xs"
       />
 
+      <UButton
+        to="/tables"
+        label="Tables"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+      />
+
       <TemplateMenu />
     </template>
 
