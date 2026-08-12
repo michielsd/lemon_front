@@ -1,28 +1,66 @@
 <script setup lang="ts">
+import { isTextUIPart } from 'ai'
+
 definePageMeta({
   layout: 'chat'
 })
 
 const input = ref('')
 
-const { messages, isStreaming, error, sendMessage, stopStreaming, clearMessages } = useChatStream()
+const {
+  uiMessages,
+  status,
+  chatError,
+  isStreaming,
+  widgetsForMessage,
+  sendMessage,
+  stopStreaming,
+  clearMessages,
+  regenerateLastResponse
+} = useChatStream()
 
-const messagesContainer = ref<HTMLElement | null>(null)
+const hasMessages = computed(() => uiMessages.value.length > 0)
 
-async function scrollToBottom() {
-  await nextTick()
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  let timeGreeting = 'Good evening'
+  if (hour < 12) {
+    timeGreeting = 'Good morning'
+  } else if (hour < 18) {
+    timeGreeting = 'Good afternoon'
   }
-}
+  return timeGreeting
+})
 
-watch(
-  () => [messages.value.length, messages.value.at(-1)?.content],
-  scrollToBottom
-)
+const quickChats = [
+  {
+    label: 'What is the structurele exploitatieruimte for Amsterdam in 2025?',
+    icon: 'i-lucide-building-2'
+  },
+  {
+    label: 'Which kengetallen are available for Utrecht?',
+    icon: 'i-lucide-list'
+  },
+  {
+    label: 'Compare budget figures for Rotterdam and Den Haag',
+    icon: 'i-lucide-git-compare'
+  },
+  {
+    label: 'Explain the difference between begroting and jaar',
+    icon: 'i-lucide-help-circle'
+  },
+  {
+    label: 'Show rekenmodel totals for Eindhoven',
+    icon: 'i-lucide-calculator'
+  },
+  {
+    label: 'What data sources can you query?',
+    icon: 'i-lucide-database'
+  }
+]
 
-async function onSubmit() {
-  const message = input.value.trim()
+async function submitPrompt(prompt?: string) {
+  const message = (prompt ?? input.value).trim()
   if (!message || isStreaming.value) {
     return
   }
@@ -31,6 +69,20 @@ async function onSubmit() {
   await sendMessage({ message })
 }
 
+function onSubmit() {
+  submitPrompt()
+}
+
+function startNewChat() {
+  stopStreaming()
+  clearMessages()
+  input.value = ''
+}
+
+defineShortcuts({
+  meta_o: startNewChat
+})
+
 useSeoMeta({
   title: 'Chat',
   description: 'Ask questions about municipal kengetallen data.'
@@ -38,96 +90,148 @@ useSeoMeta({
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col">
-    <div
-      ref="messagesContainer"
-      class="min-h-0 flex-1 overflow-y-auto"
-    >
-      <div class="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
-        <p
-          v-if="messages.length === 0"
-          class="text-center text-sm text-muted"
+  <UDashboardPanel
+    id="chat"
+    class="relative min-h-0 flex flex-col"
+    :ui="{ body: 'flex min-h-0 flex-1 flex-col p-0 sm:p-0 overscroll-none' }"
+  >
+    <template #header>
+      <ChatNavbar @new-chat="startNewChat">
+        <template
+          v-if="hasMessages"
+          #title
         >
-          Ask a question to get started.
+          <h1 class="truncate text-sm font-medium text-highlighted">
+            Kengetallen chat
+          </h1>
+        </template>
+      </ChatNavbar>
+    </template>
+
+    <template #body>
+      <UContainer
+        v-if="!hasMessages"
+        class="flex flex-1 flex-col justify-center gap-4 py-8 sm:gap-6"
+      >
+        <h1 class="text-3xl font-bold text-highlighted sm:text-4xl">
+          {{ greeting }}
+        </h1>
+
+        <p class="max-w-2xl text-muted">
+          Ask questions about Dutch municipal budget data, kengetallen, and rekenmodel figures.
         </p>
 
-        <div
-          v-for="message in messages"
-          :key="message.id"
-          class="flex"
-          :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
-        >
-          <div
-            class="max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap"
-            :class="message.role === 'user'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-elevated text-default'"
-          >
-            {{ message.content }}
-            <span
-              v-if="message.role === 'assistant' && isStreaming && message === messages.at(-1)"
-              class="ml-0.5 inline-block animate-pulse"
-            >
-              |
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="shrink-0 border-t border-default bg-default/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-default/80"
-    >
-      <form
-        class="mx-auto flex w-full max-w-3xl flex-col gap-3"
-        @submit.prevent="onSubmit"
-      >
-        <UAlert
-          v-if="error"
-          color="error"
+        <UChatPrompt
+          v-model="input"
+          :status="status"
+          :error="chatError"
+          color="neutral"
           variant="subtle"
-          :title="error"
-        />
+          placeholder="Ask a question about kengetallen..."
+          class="[view-transition-name:chat-prompt]"
+          :ui="{ base: 'px-1.5' }"
+          @submit="onSubmit"
+        >
+          <template #footer>
+            <UChatPromptSubmit
+              :status="status"
+              color="neutral"
+              size="sm"
+              @stop="stopStreaming()"
+              @reload="regenerateLastResponse()"
+            />
+          </template>
+        </UChatPrompt>
 
-        <div class="flex items-end gap-2">
-          <UTextarea
-            v-model="input"
-            :rows="1"
-            :maxrows="6"
-            autoresize
-            placeholder="Ask a question..."
-            class="flex-1"
-            :disabled="isStreaming"
-            @keydown.enter.exact.prevent="onSubmit"
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-for="quickChat in quickChats"
+            :key="quickChat.label"
+            :icon="quickChat.icon"
+            :label="quickChat.label"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            class="rounded-full"
+            @click="submitPrompt(quickChat.label)"
           />
-          <div class="flex shrink-0 gap-2">
-            <UButton
-              type="submit"
-              icon="i-lucide-send"
-              :loading="isStreaming"
-              :disabled="!input.trim()"
-              aria-label="Send"
-            />
-            <UButton
-              v-if="isStreaming"
-              color="neutral"
-              variant="outline"
-              icon="i-lucide-square"
-              aria-label="Stop"
-              @click="stopStreaming"
-            />
-            <UButton
-              v-else
-              color="neutral"
-              variant="ghost"
-              icon="i-lucide-trash-2"
-              :disabled="messages.length === 0"
-              aria-label="Clear chat"
-              @click="clearMessages"
-            />
-          </div>
         </div>
-      </form>
-    </div>
-  </div>
+      </UContainer>
+
+      <UContainer
+        v-else
+        class="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6"
+      >
+        <UChatMessages
+          should-auto-scroll
+          :messages="uiMessages"
+          :status="status"
+          :spacing-offset="200"
+          class="min-h-0 flex-1 overflow-y-auto pt-(--ui-header-height) pb-4 sm:pb-6"
+        >
+          <template #indicator>
+            <div class="flex items-center gap-1.5">
+              <ChatIndicator />
+
+              <UChatShimmer
+                text="Thinking..."
+                class="text-sm"
+              />
+            </div>
+          </template>
+
+          <template #content="{ message }">
+            <div class="space-y-4">
+              <Suspense
+                v-for="(widget, widgetIndex) in widgetsForMessage(message.id)"
+                :key="`${message.id}-widget-${widgetIndex}`"
+              >
+                <LazyChatKengetallenWidget :initial-spec="widget" />
+                <template #fallback>
+                  <KengetallenWidgetSkeleton
+                    :kengetal="widget.kengetal"
+                    :gemeente-naam="widget.gemeente_naam"
+                  />
+                </template>
+              </Suspense>
+
+              <template
+                v-for="(part, index) in message.parts"
+                :key="`${message.id}-${part.type}-${index}`"
+              >
+                <p
+                  v-if="isTextUIPart(part) && part.text"
+                  class="whitespace-pre-wrap"
+                >
+                  {{ part.text }}
+                </p>
+              </template>
+            </div>
+          </template>
+        </UChatMessages>
+
+        <UChatPrompt
+          v-model="input"
+          :status="status"
+          :error="chatError"
+          color="neutral"
+          variant="subtle"
+          placeholder="Ask a follow-up question..."
+          class="sticky bottom-0 z-10 [view-transition-name:chat-prompt] rounded-b-none"
+          :ui="{ base: 'px-1.5' }"
+          @submit="onSubmit"
+        >
+          <template #footer>
+            <UChatPromptSubmit
+              :status="status"
+              color="neutral"
+              size="sm"
+              @stop="stopStreaming()"
+              @reload="regenerateLastResponse()"
+            />
+          </template>
+        </UChatPrompt>
+      </UContainer>
+    </template>
+  </UDashboardPanel>
 </template>

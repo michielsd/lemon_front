@@ -21,6 +21,22 @@
         size="xs"
       />
 
+      <UButton
+        to="/helpers"
+        label="Helpers"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+      />
+
+      <UButton
+        to="/dataviewer"
+        label="Data viewer"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+      />
+
       <TemplateMenu />
     </template>
 
