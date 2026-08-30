@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import type { SelectorOptions } from '~/types/selectors'
-import type { DataViewerFilters } from '~/composables/useDataViewer'
+import type { DataViewerFilters, DataViewerLimit } from '~/composables/useDataViewer'
 
-const LIMIT_OPTIONS = [
+const LIMIT_OPTIONS: { label: string, value: DataViewerLimit }[] = [
   { label: '10', value: '10' },
   { label: '25', value: '25' },
   { label: '50', value: '50' },
   { label: '100', value: '100' },
   { label: '250', value: '250' },
   { label: '500', value: '500' }
-] as const
+]
 
 const selectorValues = ref<DataViewerFilters>({
   limit: '10'
@@ -50,13 +50,16 @@ watch(
     if (!selectorsInitialized.value) {
       const defaults: DataViewerFilters = { limit: '10' }
       for (const [field, definition] of Object.entries(nextSelectors)) {
+        if (field === 'limit') {
+          continue
+        }
         const entries = Object.entries(definition.options)
         if (entries.length === 0) {
           continue
         }
         const firstValue = entries[0]?.[1]
         if (firstValue) {
-          defaults[field as keyof DataViewerFilters] = firstValue
+          defaults[field as Exclude<keyof DataViewerFilters, 'limit'>] = firstValue
         }
       }
       selectorValues.value = defaults
@@ -67,7 +70,10 @@ watch(
     const next = { ...selectorValues.value }
     let changed = false
     for (const [field, definition] of Object.entries(nextSelectors)) {
-      const key = field as keyof DataViewerFilters
+      if (field === 'limit') {
+        continue
+      }
+      const key = field as Exclude<keyof DataViewerFilters, 'limit'>
       const current = next[key]
       const validValues = Object.values(definition.options)
       if (validValues.length === 0) {

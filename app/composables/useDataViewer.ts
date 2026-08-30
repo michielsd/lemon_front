@@ -13,11 +13,13 @@ export interface DataViewerResponse {
   model_meta: DataViewerModelMeta
 }
 
+export type DataViewerLimit = '10' | '25' | '50' | '100' | '250' | '500'
+
 export interface DataViewerFilters {
   model?: string
   circulaire?: string
   jaar?: string
-  limit?: string
+  limit?: DataViewerLimit
 }
 
 function buildDataViewerUrl(base: string, filters: DataViewerFilters): string {
