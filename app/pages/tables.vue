@@ -407,95 +407,95 @@ useSeoMeta({
 
     <UPageBody>
       <div class="mx-auto w-full max-w-6xl">
-      <UAlert
-        v-if="error"
-        color="error"
-        variant="subtle"
-        title="Failed to load tables"
-        :description="error.message"
-        class="mb-6"
-      />
-
-      <div
-        v-if="pending && tables.length === 0"
-        class="flex items-center justify-center py-16 text-muted"
-      >
-        <UIcon
-          name="i-lucide-loader-circle"
-          class="size-6 animate-spin"
-        />
-      </div>
-
-      <UEmpty
-        v-else-if="!pending && tables.length === 0"
-        icon="i-lucide-table"
-        title="No tables yet"
-        description="The API has not returned any table data."
-      />
-
-      <div
-        v-else-if="selectedTable"
-        class="space-y-4"
-      >
-        <USelect
-          v-if="tableOptions.length > 1"
-          v-model="selectedTableId"
-          :items="tableOptions"
-          value-key="value"
-          label-key="label"
-          class="max-w-xs"
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="subtle"
+          title="Failed to load tables"
+          :description="error.message"
+          class="mb-6"
         />
 
         <div
-          v-if="selectorEntries.length > 0"
-          class="flex flex-wrap gap-4"
+          v-if="pending && tables.length === 0"
+          class="flex items-center justify-center py-16 text-muted"
         >
-          <UFormField
-            v-for="selector in selectorEntries"
-            :key="selector.field"
-            :label="selector.label"
-            :class="selector.field === 'gemeente' || selector.field === 'prijzen_type'
-              ? 'min-w-72 max-w-lg flex-1'
-              : 'min-w-48 max-w-xs flex-1'"
-          >
-            <USelect
-              v-model="selectorValues[selector.field as keyof TableFilters]"
-              :items="buildSelectorItems(selector.options, selector.field)"
-              value-key="value"
-              label-key="label"
-              :class="selector.field === 'gemeente' || selector.field === 'prijzen_type' ? 'w-full min-w-72' : undefined"
-              :ui="selector.field === 'gemeente' || selector.field === 'prijzen_type' ? { content: 'min-w-fit' } : undefined"
-            />
-          </UFormField>
-        </div>
-
-        <UEmpty
-          v-if="!pending && !filtersComplete"
-          icon="i-lucide-filter"
-          title="Select filters"
-          description="Choose a gemeente, circulaire, jaar, and prijzen type to load the table."
-        />
-
-        <UEmpty
-          v-else-if="!pending && filtersComplete && (selectedTable.rows?.length ?? 0) === 0"
-          icon="i-lucide-table"
-          title="No rows"
-          description="No au per maatstaf data found for the selected filters."
-        />
-
-        <div
-          v-else
-          class="overflow-x-auto"
-        >
-          <UTable
-            :data="displayedRows"
-            :columns="columns"
-            :loading="pending"
-            sticky
-            class="max-h-[70vh]"
+          <UIcon
+            name="i-lucide-loader-circle"
+            class="size-6 animate-spin"
           />
         </div>
-      </div>
+
+        <UEmpty
+          v-else-if="!pending && tables.length === 0"
+          icon="i-lucide-table"
+          title="No tables yet"
+          description="The API has not returned any table data."
+        />
+
+        <div
+          v-else-if="selectedTable"
+          class="space-y-4"
+        >
+          <USelect
+            v-if="tableOptions.length > 1"
+            v-model="selectedTableId"
+            :items="tableOptions"
+            value-key="value"
+            label-key="label"
+            class="max-w-xs"
+          />
+
+          <div
+            v-if="selectorEntries.length > 0"
+            class="flex flex-wrap gap-4"
+          >
+            <UFormField
+              v-for="selector in selectorEntries"
+              :key="selector.field"
+              :label="selector.label"
+              :class="selector.field === 'gemeente' || selector.field === 'prijzen_type'
+                ? 'min-w-72 max-w-lg flex-1'
+                : 'min-w-48 max-w-xs flex-1'"
+            >
+              <USelect
+                v-model="selectorValues[selector.field as keyof TableFilters]"
+                :items="buildSelectorItems(selector.options, selector.field)"
+                value-key="value"
+                label-key="label"
+                :class="selector.field === 'gemeente' || selector.field === 'prijzen_type' ? 'w-full min-w-72' : undefined"
+                :ui="selector.field === 'gemeente' || selector.field === 'prijzen_type' ? { content: 'min-w-fit' } : undefined"
+              />
+            </UFormField>
+          </div>
+
+          <UEmpty
+            v-if="!pending && !filtersComplete"
+            icon="i-lucide-filter"
+            title="Select filters"
+            description="Choose a gemeente, circulaire, jaar, and prijzen type to load the table."
+          />
+
+          <UEmpty
+            v-else-if="!pending && filtersComplete && (selectedTable.rows?.length ?? 0) === 0"
+            icon="i-lucide-table"
+            title="No rows"
+            description="No au per maatstaf data found for the selected filters."
+          />
+
+          <div
+            v-else
+            class="overflow-x-auto"
+          >
+            <UTable
+              :data="displayedRows"
+              :columns="columns"
+              :loading="pending"
+              sticky
+              class="max-h-[70vh]"
+            />
+          </div>
+        </div>
       </div>
     </UPageBody>
   </UPage>

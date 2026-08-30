@@ -4,7 +4,7 @@ import { VisAxis, VisLine, VisTooltip, VisXYContainer } from '@unovis/vue'
 import type { KengetallenChartSeries } from '~/types/kengetallen-widget'
 import { seriesColor } from '~/utils/kengetallenChart'
 
-const props = defineProps<{
+defineProps<{
   series: KengetallenChartSeries[]
 }>()
 

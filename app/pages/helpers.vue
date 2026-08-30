@@ -89,7 +89,7 @@ watch(
 )
 
 const helperOptions = computed(() =>
-  helpers.value.map((helper) => ({
+  helpers.value.map(helper => ({
     label: helper.name ?? helper.id,
     value: helper.id
   }))
@@ -166,7 +166,10 @@ useSeoMeta({
           description="The API has not returned any helper data."
         />
 
-        <div v-else-if="selectedHelper" class="space-y-4">
+        <div
+          v-else-if="selectedHelper"
+          class="space-y-4"
+        >
           <USelect
             v-model="selectedHelperId"
             :items="helperOptions"
@@ -233,4 +236,3 @@ useSeoMeta({
     </UPageBody>
   </UPage>
 </template>
-

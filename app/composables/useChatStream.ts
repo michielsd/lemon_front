@@ -274,7 +274,7 @@ export function useChatStream() {
         throw new Error(payload?.error ?? `Request failed (${response.status})`)
       }
 
-      await consumeSseResponse(response, events => {
+      await consumeSseResponse(response, (events) => {
         for (const event of events) {
           if (event.type === 'conversation' && event.conversation_id) {
             conversationId.value = event.conversation_id
