@@ -7,6 +7,7 @@
       class="min-h-0 flex-1"
     >
       <div class="m-4 flex min-w-0 flex-1 overflow-hidden rounded-lg bg-default/75 shadow ring ring-default">
+        <ChatSidebar />
         <slot />
       </div>
     </UDashboardGroup>

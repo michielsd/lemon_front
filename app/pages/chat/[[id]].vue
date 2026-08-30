@@ -5,19 +5,26 @@ definePageMeta({
   layout: 'chat'
 })
 
+const route = useRoute()
+const router = useRouter()
 const input = ref('')
+const loadingConversation = ref(false)
 
 const {
+  messages,
+  conversationId,
   uiMessages,
   status,
   chatError,
   isStreaming,
   widgetsForMessage,
+  hydrateConversation,
   sendMessage,
   stopStreaming,
-  clearMessages,
-  regenerateLastResponse
+  clearMessages
 } = useChatStream()
+
+const { fetchConversation } = useConversations()
 
 const hasMessages = computed(() => uiMessages.value.length > 0)
 
@@ -59,6 +66,53 @@ const quickChats = [
   }
 ]
 
+const pageTitle = computed(() => {
+  if (!hasMessages.value) {
+    return 'Chat'
+  }
+  return 'Kengetallen chat'
+})
+
+watch(
+  () => route.params.id,
+  async (id) => {
+    if (!import.meta.client) {
+      return
+    }
+    const nextId = typeof id === 'string' ? id : ''
+    if (!nextId) {
+      if (!isStreaming.value) {
+        clearMessages()
+      }
+      return
+    }
+    if (nextId === conversationId.value && (isStreaming.value || messages.value.length > 0)) {
+      return
+    }
+    if (isStreaming.value) {
+      stopStreaming()
+    }
+    loadingConversation.value = true
+    try {
+      const detail = await fetchConversation(nextId)
+      hydrateConversation(detail)
+    } catch {
+      clearMessages()
+      await router.replace('/chat')
+    } finally {
+      loadingConversation.value = false
+    }
+  },
+  { immediate: true }
+)
+
+watch(conversationId, (id) => {
+  const currentId = typeof route.params.id === 'string' ? route.params.id : ''
+  if (id && id !== currentId) {
+    router.replace(`/chat/${id}`)
+  }
+})
+
 async function submitPrompt(prompt?: string) {
   const message = (prompt ?? input.value).trim()
   if (!message || isStreaming.value) {
@@ -77,6 +131,7 @@ function startNewChat() {
   stopStreaming()
   clearMessages()
   input.value = ''
+  router.push('/chat')
 }
 
 defineShortcuts({
@@ -96,21 +151,22 @@ useSeoMeta({
     :ui="{ body: 'flex min-h-0 flex-1 flex-col p-0 sm:p-0 overscroll-none' }"
   >
     <template #header>
-      <ChatNavbar @new-chat="startNewChat">
-        <template
-          v-if="hasMessages"
-          #title
-        >
-          <h1 class="truncate text-sm font-medium text-highlighted">
-            Kengetallen chat
-          </h1>
-        </template>
-      </ChatNavbar>
+      <ChatNavbar
+        :title="pageTitle"
+        @new-chat="startNewChat"
+      />
     </template>
 
     <template #body>
+      <div
+        v-if="loadingConversation"
+        class="flex flex-1 items-center justify-center text-sm text-muted"
+      >
+        Loading conversation...
+      </div>
+
       <UContainer
-        v-if="!hasMessages"
+        v-else-if="!hasMessages"
         class="flex flex-1 flex-col justify-center gap-4 py-8 sm:gap-6"
       >
         <h1 class="text-3xl font-bold text-highlighted sm:text-4xl">
@@ -138,7 +194,6 @@ useSeoMeta({
               color="neutral"
               size="sm"
               @stop="stopStreaming()"
-              @reload="regenerateLastResponse()"
             />
           </template>
         </UChatPrompt>
@@ -188,7 +243,7 @@ useSeoMeta({
               >
                 <LazyChatKengetallenWidget :initial-spec="widget" />
                 <template #fallback>
-                  <KengetallenWidgetSkeleton
+                  <ChatKengetallenWidgetSkeleton
                     :kengetal="widget.kengetal"
                     :gemeente-naam="widget.gemeente_naam"
                   />
@@ -227,7 +282,6 @@ useSeoMeta({
               color="neutral"
               size="sm"
               @stop="stopStreaming()"
-              @reload="regenerateLastResponse()"
             />
           </template>
         </UChatPrompt>

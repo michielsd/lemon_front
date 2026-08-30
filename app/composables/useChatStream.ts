@@ -1,4 +1,5 @@
 import type { ChatStatus, UIMessage } from 'ai'
+import type { ConversationDetail } from '~/types/chat'
 import type { KengetallenWidgetSpec } from '~/types/kengetallen-widget'
 import { isKengetallenWidgetSpec, cloneKengetallenWidgetSpec } from '~/utils/kengetallenChart'
 
@@ -16,9 +17,10 @@ export interface ChatRequest {
 }
 
 interface StreamEvent {
-  type: 'status' | 'token' | 'widget' | 'done' | 'error'
+  type: 'conversation' | 'status' | 'token' | 'widget' | 'done' | 'error'
   content?: string
   message?: string
+  conversation_id?: string
   row_count?: number
   tools_used?: string[]
   has_widget?: boolean
@@ -106,7 +108,7 @@ function applyStreamEvents(
   ]
 
   for (const event of ordered) {
-    if (event.type === 'status' || event.type === 'done') {
+    if (event.type === 'status' || event.type === 'done' || event.type === 'conversation') {
       continue
     }
 
@@ -169,7 +171,9 @@ async function consumeSseResponse(
 
 export function useChatStream() {
   const config = useRuntimeConfig()
+  const { ownerHeaders } = useOwnerKey()
   const messages = useState<ChatMessage[]>('chat-stream-messages', () => [])
+  const conversationId = useState<string | null>('chat-conversation-id', () => null)
   const isStreaming = useState('chat-stream-is-streaming', () => false)
   const error = useState<string | null>('chat-stream-error', () => null)
 
@@ -190,8 +194,11 @@ export function useChatStream() {
       return 'error'
     }
     if (isStreaming.value) {
-      const lastAssistant = [...messages.value].reverse().find(message => message.role === 'assistant')
-      if (!lastAssistant || (!lastAssistant.content && lastAssistant.widgets.length === 0)) {
+      const lastMessage = messages.value.at(-1)
+      if (!lastMessage || lastMessage.role === 'user') {
+        return 'submitted'
+      }
+      if (!lastMessage.content && lastMessage.widgets.length === 0) {
         return 'submitted'
       }
       return 'streaming'
@@ -212,6 +219,19 @@ export function useChatStream() {
     const nextMessages = cloneMessages(messages.value)
     applyStreamEvents(nextMessages, events, assistantIndexRef)
     messages.value = nextMessages
+  }
+
+  function hydrateConversation(detail: ConversationDetail) {
+    conversationId.value = detail.id
+    error.value = null
+    messages.value = detail.messages.map(message => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      widgets: (message.widgets ?? [])
+        .filter(isKengetallenWidgetSpec)
+        .map(spec => cloneKengetallenWidgetSpec(spec))
+    }))
   }
 
   async function sendMessage(request: ChatRequest) {
@@ -238,8 +258,14 @@ export function useChatStream() {
     try {
       const response = await fetch(`${config.public.apiBase}/api/chat/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
+        headers: {
+          'Content-Type': 'application/json',
+          ...ownerHeaders()
+        },
+        body: JSON.stringify({
+          message: request.message.trim(),
+          conversation_id: conversationId.value
+        }),
         signal: abortController.signal
       })
 
@@ -249,6 +275,11 @@ export function useChatStream() {
       }
 
       await consumeSseResponse(response, events => {
+        for (const event of events) {
+          if (event.type === 'conversation' && event.conversation_id) {
+            conversationId.value = event.conversation_id
+          }
+        }
         commitStreamEvents(events, assistantIndexRef)
       })
     } catch (err) {
@@ -288,32 +319,13 @@ export function useChatStream() {
 
   function clearMessages() {
     messages.value = []
+    conversationId.value = null
     error.value = null
-  }
-
-  async function regenerateLastResponse() {
-    const lastUserMessage = [...messages.value].reverse().find(message => message.role === 'user')
-    if (!lastUserMessage || isStreaming.value) {
-      return
-    }
-
-    const lastUserIndex = messages.value.findLastIndex(message => message.id === lastUserMessage.id)
-    if (lastUserIndex === -1) {
-      return
-    }
-
-    let nextMessages = messages.value.slice(0, lastUserIndex + 1)
-    const trailingAssistant = nextMessages.at(-1)
-    if (trailingAssistant?.role === 'assistant') {
-      nextMessages = nextMessages.slice(0, -1)
-    }
-    messages.value = nextMessages
-
-    await sendMessage({ message: lastUserMessage.content })
   }
 
   return {
     messages,
+    conversationId,
     uiMessages,
     widgetsByMessageId,
     status,
@@ -321,9 +333,9 @@ export function useChatStream() {
     isStreaming,
     error,
     widgetsForMessage,
+    hydrateConversation,
     sendMessage,
     stopStreaming,
-    clearMessages,
-    regenerateLastResponse
+    clearMessages
   }
 }
