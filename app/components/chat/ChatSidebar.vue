@@ -34,20 +34,20 @@ function formatUpdatedAt(iso: string) {
   const diffMs = Date.now() - date.getTime()
   const minutes = Math.round(diffMs / 60000)
   if (minutes < 1) {
-    return 'Just now'
+    return 'Zojuist'
   }
   if (minutes < 60) {
-    return `${minutes}m ago`
+    return `${minutes}m geleden`
   }
   const hours = Math.round(minutes / 60)
   if (hours < 24) {
-    return `${hours}h ago`
+    return `${hours}u geleden`
   }
   const days = Math.round(hours / 24)
   if (days < 7) {
-    return `${days}d ago`
+    return `${days}d geleden`
   }
-  return date.toLocaleDateString()
+  return date.toLocaleDateString('nl-NL')
 }
 
 function startNewChat() {
@@ -97,16 +97,16 @@ async function removeConversation(id: string) {
 
 <template>
   <aside class="flex w-64 shrink-0 flex-col border-r border-default bg-default/40">
-    <div class="flex items-center justify-between gap-2 border-b border-default px-3 py-3">
+    <div class="flex flex-col gap-2 border-b border-default p-3">
       <p class="text-sm font-medium text-highlighted">
         Chats
       </p>
       <UButton
         color="neutral"
-        variant="ghost"
-        icon="i-lucide-circle-plus"
-        size="xs"
-        aria-label="New chat"
+        variant="subtle"
+        icon="i-lucide-plus"
+        label="Nieuw gesprek"
+        block
         @click="startNewChat"
       />
     </div>
@@ -116,13 +116,13 @@ async function removeConversation(id: string) {
         v-if="pending && conversations.length === 0"
         class="px-2 py-3 text-xs text-muted"
       >
-        Loading chats...
+        Chats laden...
       </p>
       <p
         v-else-if="conversations.length === 0"
         class="px-2 py-3 text-xs text-muted"
       >
-        No chats yet. Send a message to start one.
+        Nog geen chats. Stuur een bericht om er een te starten.
       </p>
       <ul
         v-else
@@ -153,7 +153,7 @@ async function removeConversation(id: string) {
                 v-else
                 class="block truncate font-medium"
               >
-                {{ conversation.title || 'New chat' }}
+                {{ conversation.title || 'Nieuw gesprek' }}
               </span>
               <span class="mt-0.5 block text-xs opacity-70">
                 {{ formatUpdatedAt(conversation.updated_at) }}
@@ -161,11 +161,11 @@ async function removeConversation(id: string) {
             </button>
             <UDropdownMenu
               :items="[{
-                label: 'Rename',
+                label: 'Hernoemen',
                 icon: 'i-lucide-pencil',
                 onSelect: () => startRename(conversation.id, conversation.title)
               }, {
-                label: 'Delete',
+                label: 'Verwijderen',
                 icon: 'i-lucide-trash',
                 color: 'error',
                 onSelect: () => removeConversation(conversation.id)
@@ -177,7 +177,7 @@ async function removeConversation(id: string) {
                 icon="i-lucide-ellipsis"
                 size="xs"
                 class="opacity-0 group-hover:opacity-100"
-                aria-label="Conversation actions"
+                aria-label="Gespreksacties"
                 @click.stop
               />
             </UDropdownMenu>

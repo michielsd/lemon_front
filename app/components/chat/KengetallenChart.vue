@@ -2,7 +2,7 @@
 import '@unovis/ts/styles/index.js'
 import { VisAxis, VisLine, VisTooltip, VisXYContainer } from '@unovis/vue'
 import type { KengetallenChartSeries } from '~/types/kengetallen-widget'
-import { seriesColor } from '~/utils/kengetallenChart'
+import { isDashedSeries, seriesColor } from '~/utils/kengetallenChart'
 
 defineProps<{
   series: KengetallenChartSeries[]
@@ -15,6 +15,10 @@ function xAccessor(d: { jaar: number }) {
 function yAccessor(d: { waarde: number }) {
   return d.waarde
 }
+
+function lineDashArray(entry: KengetallenChartSeries) {
+  return isDashedSeries(entry) ? [6, 4] : null
+}
 </script>
 
 <template>
@@ -26,6 +30,12 @@ function yAccessor(d: { waarde: number }) {
         class="inline-flex items-center gap-1.5"
       >
         <span
+          v-if="isDashedSeries(entry)"
+          class="inline-block w-4 border-t-2 border-dashed"
+          :style="{ borderColor: seriesColor(index) }"
+        />
+        <span
+          v-else
           class="inline-block size-2.5 rounded-full"
           :style="{ backgroundColor: seriesColor(index) }"
         />
@@ -45,6 +55,7 @@ function yAccessor(d: { waarde: number }) {
           :x="xAccessor"
           :y="yAccessor"
           :color="seriesColor(index)"
+          :line-dash-array="lineDashArray(entry)"
         />
         <VisAxis
           type="x"

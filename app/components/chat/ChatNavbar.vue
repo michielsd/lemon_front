@@ -29,8 +29,8 @@ const emit = defineEmits<{
       <UButton
         color="neutral"
         variant="ghost"
-        icon="i-lucide-circle-plus"
-        aria-label="New chat"
+        icon="i-lucide-plus"
+        label="Nieuw gesprek"
         @click="emit('newChat')"
       />
     </template>

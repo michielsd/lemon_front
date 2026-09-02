@@ -14,18 +14,16 @@ const props = defineProps<{
 const { spec, pending, error, loadChart } = useKengetallenChart(props.initialSpec)
 
 const flipped = ref(false)
-const showRekening = ref(true)
-const showBegroting = ref(true)
-const showMeerjarenraming = ref(false)
+const showGerealiseerd = ref(true)
+const showBegroot = ref(true)
 
 const kengetalItems = computed(() =>
   spec.value.options.kengetallen.map(value => ({ label: value, value }))
 )
 
 const visibility = computed(() => ({
-  rekening: showRekening.value,
-  begroting: showBegroting.value,
-  meerjarenraming: showMeerjarenraming.value
+  gerealiseerd: showGerealiseerd.value,
+  begroot: showBegroot.value
 }))
 
 const visibleSeries = computed(() =>
@@ -94,16 +92,12 @@ async function onKengetalChange(value: string | undefined) {
 
         <div class="flex flex-wrap gap-4 pb-1">
           <UCheckbox
-            v-model="showRekening"
-            label="Rekening"
+            v-model="showGerealiseerd"
+            label="Gerealiseerd"
           />
           <UCheckbox
-            v-model="showBegroting"
-            label="Begroting"
-          />
-          <UCheckbox
-            v-model="showMeerjarenraming"
-            label="Meerjarenraming"
+            v-model="showBegroot"
+            label="Begroot"
           />
         </div>
       </div>
@@ -128,7 +122,7 @@ async function onKengetalChange(value: string | undefined) {
             v-else
             class="py-8 text-center text-sm text-muted"
           >
-            Selecteer minimaal Rekening of Begroting om data te tonen.
+            Selecteer minimaal Gerealiseerd of Begroot om data te tonen.
           </p>
         </div>
 

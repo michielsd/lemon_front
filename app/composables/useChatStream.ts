@@ -1,6 +1,7 @@
 import type { ChatStatus, UIMessage } from 'ai'
 import type { ConversationDetail } from '~/types/chat'
 import type { KengetallenWidgetSpec } from '~/types/kengetallen-widget'
+import { stripMarkdownImages } from '~/utils/chatText'
 import { isKengetallenWidgetSpec, cloneKengetallenWidgetSpec } from '~/utils/kengetallenChart'
 
 export type ChatRole = 'user' | 'assistant'
@@ -35,7 +36,7 @@ function toUIMessage(message: ChatMessage): UIMessage {
   return {
     id: message.id,
     role: message.role,
-    parts: [{ type: 'text', text: message.content }]
+    parts: [{ type: 'text', text: stripMarkdownImages(message.content) }]
   }
 }
 

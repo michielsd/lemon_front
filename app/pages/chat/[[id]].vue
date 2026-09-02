@@ -30,38 +30,38 @@ const hasMessages = computed(() => uiMessages.value.length > 0)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
-  let timeGreeting = 'Good evening'
+  let timeGreeting = 'Goedenavond'
   if (hour < 12) {
-    timeGreeting = 'Good morning'
+    timeGreeting = 'Goedemorgen'
   } else if (hour < 18) {
-    timeGreeting = 'Good afternoon'
+    timeGreeting = 'Goedemiddag'
   }
   return timeGreeting
 })
 
 const quickChats = [
   {
-    label: 'What is the structurele exploitatieruimte for Amsterdam in 2025?',
+    label: 'Wat is de structurele exploitatieruimte van Amsterdam in 2025?',
     icon: 'i-lucide-building-2'
   },
   {
-    label: 'Which kengetallen are available for Utrecht?',
+    label: 'Welke kengetallen zijn beschikbaar voor Utrecht?',
     icon: 'i-lucide-list'
   },
   {
-    label: 'Compare budget figures for Rotterdam and Den Haag',
+    label: 'Vergelijk begrotingscijfers van Rotterdam en Den Haag',
     icon: 'i-lucide-git-compare'
   },
   {
-    label: 'Explain the difference between begroting and jaar',
+    label: 'Leg het verschil uit tussen begroting en jaar',
     icon: 'i-lucide-help-circle'
   },
   {
-    label: 'Show rekenmodel totals for Eindhoven',
+    label: 'Toon rekenmodeltotalen voor Eindhoven',
     icon: 'i-lucide-calculator'
   },
   {
-    label: 'What data sources can you query?',
+    label: 'Welke databronnen kun je raadplegen?',
     icon: 'i-lucide-database'
   }
 ]
@@ -140,7 +140,7 @@ defineShortcuts({
 
 useSeoMeta({
   title: 'Chat',
-  description: 'Ask questions about municipal kengetallen data.'
+  description: 'Stel vragen over gemeentelijke kengetallen.'
 })
 </script>
 
@@ -162,7 +162,7 @@ useSeoMeta({
         v-if="loadingConversation"
         class="flex flex-1 items-center justify-center text-sm text-muted"
       >
-        Loading conversation...
+        Gesprek laden...
       </div>
 
       <UContainer
@@ -174,7 +174,7 @@ useSeoMeta({
         </h1>
 
         <p class="max-w-2xl text-muted">
-          Ask questions about Dutch municipal budget data, kengetallen, and rekenmodel figures.
+          Stel vragen over Nederlandse gemeentelijke begrotingsgegevens, kengetallen en rekenmodelcijfers.
         </p>
 
         <UChatPrompt
@@ -183,7 +183,7 @@ useSeoMeta({
           :error="chatError"
           color="neutral"
           variant="subtle"
-          placeholder="Ask a question about kengetallen..."
+          placeholder="Stel een vraag over kengetallen..."
           class="[view-transition-name:chat-prompt]"
           :ui="{ base: 'px-1.5' }"
           @submit="onSubmit"
@@ -229,7 +229,7 @@ useSeoMeta({
               <ChatIndicator />
 
               <UChatShimmer
-                text="Thinking..."
+                text="Aan het nadenken..."
                 class="text-sm"
               />
             </div>
@@ -271,7 +271,7 @@ useSeoMeta({
           :error="chatError"
           color="neutral"
           variant="subtle"
-          placeholder="Ask a follow-up question..."
+          placeholder="Stel een vervolgvraag..."
           class="sticky bottom-0 z-10 [view-transition-name:chat-prompt] rounded-b-none"
           :ui="{ base: 'px-1.5' }"
           @submit="onSubmit"

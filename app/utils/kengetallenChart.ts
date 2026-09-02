@@ -16,9 +16,8 @@ export interface KengetallenChartLinePoint extends KengetallenChartPoint {
 }
 
 export interface KengetallenVisibility {
-  rekening: boolean
-  begroting: boolean
-  meerjarenraming: boolean
+  gerealiseerd: boolean
+  begroot: boolean
 }
 
 const SERIES_COLORS = [
@@ -36,19 +35,32 @@ export function seriesColor(index: number): string {
   return SERIES_COLORS[index % SERIES_COLORS.length] ?? '#2563eb'
 }
 
+export function isGerealiseerdSeries(entry: KengetallenChartSeries): boolean {
+  return entry.type_raming === 'Rekening' || entry.id === 'gerealiseerd'
+}
+
+export function isBegrootSeries(entry: KengetallenChartSeries): boolean {
+  return (
+    entry.type_raming === 'Begroot'
+    || entry.type_raming === 'Begroting'
+    || entry.type_raming === 'Meerjarenraming'
+  )
+}
+
+export function isDashedSeries(entry: KengetallenChartSeries): boolean {
+  return entry.dashed === true || isBegrootSeries(entry)
+}
+
 export function filterVisibleSeries(
   series: KengetallenChartSeries[],
   visibility: KengetallenVisibility
 ): KengetallenChartSeries[] {
   return series.filter((entry) => {
-    if (entry.type_raming === 'Rekening') {
-      return visibility.rekening
+    if (isGerealiseerdSeries(entry)) {
+      return visibility.gerealiseerd
     }
-    if (entry.type_raming === 'Begroting') {
-      return visibility.begroting
-    }
-    if (entry.type_raming === 'Meerjarenraming') {
-      return visibility.meerjarenraming
+    if (isBegrootSeries(entry)) {
+      return visibility.begroot
     }
     return true
   })
@@ -76,13 +88,10 @@ export function filterRowsForTable(
 ): KengetallenRow[] {
   return rows.filter((row) => {
     if (row.type_raming === 'Rekening') {
-      return visibility.rekening
+      return visibility.gerealiseerd
     }
-    if (row.type_raming === 'Begroting') {
-      return visibility.begroting
-    }
-    if (row.type_raming === 'Meerjarenraming') {
-      return visibility.meerjarenraming
+    if (row.type_raming === 'Begroting' || row.type_raming === 'Meerjarenraming') {
+      return visibility.begroot
     }
     return true
   })

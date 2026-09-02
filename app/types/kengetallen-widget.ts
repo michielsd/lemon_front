@@ -10,6 +10,7 @@ export interface KengetallenChartSeries {
   label: string
   type_raming: string
   begroting?: string
+  dashed?: boolean
   points: KengetallenChartPoint[]
 }
 
