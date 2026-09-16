@@ -4,7 +4,8 @@ declare const process: { env?: Record<string, string | undefined> }
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@nuxtjs/mdc'
   ],
 
   devtools: {
@@ -24,6 +25,12 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2025-01-15',
+
+  mdc: {
+    headings: {
+      anchorLinks: false
+    }
+  },
 
   vite: {
     optimizeDeps: {

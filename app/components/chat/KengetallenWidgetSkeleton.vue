@@ -22,8 +22,7 @@ defineProps<{
     <div class="space-y-4 px-4 py-4">
       <div class="flex flex-wrap gap-3">
         <USkeleton class="h-9 min-w-64 flex-1 rounded-md" />
-        <USkeleton class="h-5 w-24 rounded-md" />
-        <USkeleton class="h-5 w-24 rounded-md" />
+        <USkeleton class="h-9 min-w-64 flex-1 rounded-md" />
       </div>
       <USkeleton class="h-80 w-full rounded-lg" />
       <p class="text-center text-xs text-muted">

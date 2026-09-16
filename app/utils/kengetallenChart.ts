@@ -15,9 +15,29 @@ export interface KengetallenChartLinePoint extends KengetallenChartPoint {
   seriesLabel: string
 }
 
-export interface KengetallenVisibility {
-  gerealiseerd: boolean
-  begroot: boolean
+export function listSelectableBegrotingen(
+  series: KengetallenChartSeries[],
+  optionBegrotingen: string[] = []
+): string[] {
+  const values = new Set<string>()
+  for (const entry of series) {
+    if (isBegrootSeries(entry) && entry.begroting) {
+      values.add(entry.begroting)
+    }
+  }
+  if (values.size === 0) {
+    for (const value of optionBegrotingen) {
+      if (value) {
+        values.add(value)
+      }
+    }
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'nl', { numeric: true }))
+}
+
+export function defaultSelectedBegrotingen(begrotingen: string[]): string[] {
+  const latest = begrotingen[begrotingen.length - 1]
+  return latest ? [latest] : []
 }
 
 const SERIES_COLORS = [
@@ -53,16 +73,17 @@ export function isDashedSeries(entry: KengetallenChartSeries): boolean {
 
 export function filterVisibleSeries(
   series: KengetallenChartSeries[],
-  visibility: KengetallenVisibility
+  selectedBegrotingen: string[]
 ): KengetallenChartSeries[] {
+  const selected = new Set(selectedBegrotingen)
   return series.filter((entry) => {
     if (isGerealiseerdSeries(entry)) {
-      return visibility.gerealiseerd
+      return true
     }
     if (isBegrootSeries(entry)) {
-      return visibility.begroot
+      return Boolean(entry.begroting && selected.has(entry.begroting))
     }
-    return true
+    return false
   })
 }
 
@@ -84,16 +105,14 @@ export function flattenSeriesForChart(
 
 export function filterRowsForTable(
   rows: KengetallenRow[],
-  visibility: KengetallenVisibility
+  selectedBegrotingen: string[]
 ): KengetallenRow[] {
+  const selected = new Set(selectedBegrotingen)
   return rows.filter((row) => {
     if (row.type_raming === 'Rekening') {
-      return visibility.gerealiseerd
+      return true
     }
-    if (row.type_raming === 'Begroting' || row.type_raming === 'Meerjarenraming') {
-      return visibility.begroot
-    }
-    return true
+    return selected.has(row.begroting)
   })
 }
 

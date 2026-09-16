@@ -32,5 +32,6 @@ export interface KengetallenWidgetSpec {
   options: {
     kengetallen: string[]
     type_raming: string[]
+    begrotingen?: string[]
   }
 }

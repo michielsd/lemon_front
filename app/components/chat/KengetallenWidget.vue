@@ -2,9 +2,11 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { KengetallenRow, KengetallenWidgetSpec } from '~/types/kengetallen-widget'
 import {
+  defaultSelectedBegrotingen,
   filterRowsForTable,
   filterVisibleSeries,
-  formatWaarde
+  formatWaarde,
+  listSelectableBegrotingen
 } from '~/utils/kengetallenChart'
 
 const props = defineProps<{
@@ -14,24 +16,44 @@ const props = defineProps<{
 const { spec, pending, error, loadChart } = useKengetallenChart(props.initialSpec)
 
 const flipped = ref(false)
-const showGerealiseerd = ref(true)
-const showBegroot = ref(true)
+const selectedBegrotingen = ref<string[]>([])
+const selectionKengetal = ref<string | null>(null)
 
 const kengetalItems = computed(() =>
   spec.value.options.kengetallen.map(value => ({ label: value, value }))
 )
 
-const visibility = computed(() => ({
-  gerealiseerd: showGerealiseerd.value,
-  begroot: showBegroot.value
-}))
+const availableBegrotingen = computed(() =>
+  listSelectableBegrotingen(spec.value.series, spec.value.options.begrotingen)
+)
+
+const begrotingItems = computed(() =>
+  availableBegrotingen.value.map(value => ({ label: value, value }))
+)
+
+watch(
+  () => [spec.value.kengetal, availableBegrotingen.value] as const,
+  ([kengetal, available]) => {
+    const allowed = new Set(available)
+    const kept = selectedBegrotingen.value.filter(value => allowed.has(value))
+    if (selectionKengetal.value !== kengetal) {
+      selectedBegrotingen.value = kept.length > 0
+        ? kept
+        : defaultSelectedBegrotingen(available)
+      selectionKengetal.value = kengetal
+      return
+    }
+    selectedBegrotingen.value = kept
+  },
+  { immediate: true }
+)
 
 const visibleSeries = computed(() =>
-  filterVisibleSeries(spec.value.series, visibility.value)
+  filterVisibleSeries(spec.value.series, selectedBegrotingen.value)
 )
 
 const visibleRows = computed(() =>
-  filterRowsForTable(spec.value.rows, visibility.value)
+  filterRowsForTable(spec.value.rows, selectedBegrotingen.value)
 )
 
 const tableColumns = computed<TableColumn<KengetallenRow>[]>(() => [
@@ -90,16 +112,19 @@ async function onKengetalChange(value: string | undefined) {
           />
         </UFormField>
 
-        <div class="flex flex-wrap gap-4 pb-1">
-          <UCheckbox
-            v-model="showGerealiseerd"
-            label="Gerealiseerd"
+        <UFormField
+          label="Begrotingen"
+          class="min-w-64 flex-1"
+        >
+          <USelect
+            v-model="selectedBegrotingen"
+            multiple
+            :items="begrotingItems"
+            :loading="pending"
+            placeholder="Selecteer begrotingen"
+            class="w-full"
           />
-          <UCheckbox
-            v-model="showBegroot"
-            label="Begroot"
-          />
-        </div>
+        </UFormField>
       </div>
 
       <UAlert
@@ -122,16 +147,23 @@ async function onKengetalChange(value: string | undefined) {
             v-else
             class="py-8 text-center text-sm text-muted"
           >
-            Selecteer minimaal Gerealiseerd of Begroot om data te tonen.
+            Selecteer minimaal één begroting om data te tonen.
           </p>
         </div>
 
         <div class="flip-panel-back">
           <UTable
+            v-if="visibleRows.length > 0"
             :data="visibleRows"
             :columns="tableColumns"
             class="max-h-80 overflow-auto"
           />
+          <p
+            v-else
+            class="py-8 text-center text-sm text-muted"
+          >
+            Selecteer minimaal één begroting om data te tonen.
+          </p>
         </div>
       </div>
     </div>

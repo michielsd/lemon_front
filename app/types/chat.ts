@@ -1,3 +1,8 @@
+import type { DataTableWidgetSpec } from '~/types/data-table-widget'
+import type { KengetallenWidgetSpec } from '~/types/kengetallen-widget'
+
+export type ChatWidgetSpec = KengetallenWidgetSpec | DataTableWidgetSpec
+
 export interface ConversationSummary {
   id: string
   title: string

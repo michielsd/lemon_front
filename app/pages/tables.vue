@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import type { SelectorOptions } from '~/types/selectors'
 import type { TableFilters } from '~/composables/useTables'
+import {
+  buildSelectorItems,
+  formatCellValue,
+  formatSortDirection,
+  nextSortState,
+  preferredSelectorValue,
+  sortTableRows,
+  tableColumnKeys,
+  type SortState
+} from '~/utils/dataTable'
 
 const selectorValues = ref<TableFilters>({})
 const selectorsInitialized = ref(false)
@@ -71,25 +80,9 @@ watch(
       const defaults: TableFilters = {}
       for (const [field, definition] of Object.entries(table.selectors)) {
         const key = field as keyof TableFilters
-        const entries = Object.entries(definition.options)
-        if (entries.length === 0) {
-          continue
-        }
-
-        if (field === 'prijzen_type') {
-          const match = entries.find(([label, value]) => {
-            const haystack = `${label} ${value}`.toLowerCase()
-            return haystack.includes('lopende')
-          })
-          if (match?.[1]) {
-            defaults[key] = match[1]
-            continue
-          }
-        }
-
-        const firstValue = entries[0]?.[1]
-        if (firstValue) {
-          defaults[key] = firstValue
+        const preferred = preferredSelectorValue(field, definition.options)
+        if (preferred) {
+          defaults[key] = preferred
         }
       }
       selectorValues.value = defaults
@@ -102,28 +95,13 @@ watch(
     for (const [field, definition] of Object.entries(table.selectors)) {
       const key = field as keyof TableFilters
       const current = next[key]
-      const entries = Object.entries(definition.options)
-      const validValues = entries.map(([, value]) => value)
+      const validValues = Object.values(definition.options)
       if (validValues.length === 0) {
         continue
       }
 
-      const preferredValue = (() => {
-        if (field !== 'prijzen_type') {
-          return validValues[0]
-        }
-
-        const match = entries.find(([label, value]) => {
-          const haystack = `${label} ${value}`.toLowerCase()
-          return haystack.includes('lopende')
-        })
-
-        return match?.[1] ?? validValues[0]
-      })()
-
-      // If current is empty or no longer valid, move to preferred default.
       if (!current || !validValues.includes(current)) {
-        next[key] = preferredValue
+        next[key] = preferredSelectorValue(field, definition.options)
         changed = true
       }
     }
@@ -134,16 +112,6 @@ watch(
   { immediate: true }
 )
 
-function buildSelectorItems(options: SelectorOptions, field?: string) {
-  const items = Object.entries(options).map(([label, value]) => ({ label, value }))
-
-  if (field === 'gemeente') {
-    return items.sort((a, b) => a.label.localeCompare(b.label, 'nl'))
-  }
-
-  return items
-}
-
 function buildColumns(
   rows: Record<string, unknown>[],
   selectorFields: Set<string>
@@ -152,16 +120,7 @@ function buildColumns(
     return []
   }
 
-  const keys = new Set<string>()
-  for (const row of rows) {
-    for (const key of Object.keys(row)) {
-      if (!selectorFields.has(key)) {
-        keys.add(key)
-      }
-    }
-  }
-
-  return [...keys].map(key => ({
+  return tableColumnKeys(rows, selectorFields).map(key => ({
     accessorKey: key,
     header: () => {
       const isActive = sortState.value?.key === key
@@ -180,194 +139,19 @@ function buildColumns(
   }))
 }
 
-function formatCellValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return ''
-  }
-
-  if (typeof value === 'object') {
-    return JSON.stringify(value)
-  }
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(Math.round(value))
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed !== '' && Number.isFinite(Number(trimmed))) {
-      return String(Math.round(Number(trimmed)))
-    }
-  }
-
-  return String(value)
-}
-
 const selectorFieldNames = computed(
   () => new Set(Object.keys(selectedTable.value?.selectors ?? {}))
 )
 
-type SortDirection = 'asc' | 'desc'
-type SortState = { key: string, direction: SortDirection } | null
-
 const sortState = ref<SortState>(null)
-
-function nextSortState(current: SortState, key: string): SortState {
-  if (!current || current.key !== key) {
-    return { key, direction: 'asc' }
-  }
-  if (current.direction === 'asc') {
-    return { key, direction: 'desc' }
-  }
-  return null
-}
-
-function formatSortDirection(direction?: SortDirection) {
-  if (direction === 'asc') {
-    return '↑'
-  }
-  if (direction === 'desc') {
-    return '↓'
-  }
-  return ''
-}
-
-const DEFAULT_VOLUMEN_ORDER = [
-  'bedrijven',
-  'bewoonde oorden 1930',
-  'historische woningen in bewoonde oorden 1930',
-  'bijstandsontvangers',
-  'doelgroepenregister gemeentelijke doelgroep',
-  'éénpersoonshuishoudens',
-  'extra groei jongeren',
-  'extra groei leerlingen voortgezet onderwijs',
-  'grote woonkernen',
-  'huishoudens met een laag inkomen met drempel',
-  'inwoners',
-  'inwoners 75+ met drempel',
-  'inwoners waddengemeenten (<2500 inwoners)',
-  'inwoners waddengemeenten (>7500 inwoners)',
-  'inwoners waddengemeenten (2500 tot 7500 inwoners)',
-  'jongeren',
-  'kernen',
-  'laag opleidingsniveau met drempel',
-  'leerlingen (voortgezet) speciaal onderwijs',
-  'leerlingen voortgezet onderwijs',
-  'loonkostensubsidie',
-  'migratieachtergrond',
-  'landelijke centrumfunctie',
-  'lokale centrumfunctie',
-  'regionale centrumfunctie',
-  '(oeverlengte+2*veen/kleiveengebied)*bf.gemeente*dh.factor',
-  'oeverlengte*bodemfactor gemeente',
-  'omgevingsadressendichtheid',
-  'onderwijsachterstand',
-  'oppervlak bebouwing buitengebied',
-  'oppervlak bebouwing buitengebied * bodemfactor buitengebied',
-  'oppervlak bebouwing woonkern',
-  'oppervlak bebouwing woonkern * bodemfactor woonkern',
-  'oppervlak binnenwater',
-  'oppervlak buitenwater',
-  'oppervlak historische kern < 40 ha',
-  'oppervlak historische kern > 65 ha',
-  'oppervlak historische kern 40 tot 65 ha',
-  'oppervlak land * bodemfactor gemeente',
-  'oppervlak land',
-  'ozb niet-woningen eigenaren',
-  'ozb niet-woningen gebruikers',
-  'ozb woningen eigenaren',
-  'vast bedrag',
-  'vast bedrag Amsterdam',
-  'verkiezingen Den Haag',
-  'vast bedrag Rotterdam',
-  'woonruimten',
-  'woonruimten * bodemfactor woonkern'
-] as const
-
-function normalizeVolumenLabel(input: unknown): string {
-  if (typeof input !== 'string') {
-    return ''
-  }
-
-  return input
-    .replaceAll('∗', '*')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-const DEFAULT_VOLUMEN_RANK = new Map(
-  DEFAULT_VOLUMEN_ORDER.map((label, index) => [normalizeVolumenLabel(label), index])
-)
-
-function compareMaybeNumber(a: unknown, b: unknown, direction: SortDirection): number {
-  const aNum = typeof a === 'number'
-    ? a
-    : (typeof a === 'string' && a.trim() !== '' ? Number(a) : Number.NaN)
-  const bNum = typeof b === 'number'
-    ? b
-    : (typeof b === 'string' && b.trim() !== '' ? Number(b) : Number.NaN)
-
-  const aHas = Number.isFinite(aNum)
-  const bHas = Number.isFinite(bNum)
-
-  if (aHas && bHas) {
-    return direction === 'asc' ? aNum - bNum : bNum - aNum
-  }
-
-  const aStr = a === null || a === undefined ? '' : String(a)
-  const bStr = b === null || b === undefined ? '' : String(b)
-  const cmp = aStr.localeCompare(bStr, 'nl')
-  return direction === 'asc' ? cmp : -cmp
-}
-
-function stableSort<T>(items: T[], compare: (a: T, b: T) => number): T[] {
-  return items
-    .map((item, index) => ({ item, index }))
-    .sort((a, b) => {
-      const result = compare(a.item, b.item)
-      return result !== 0 ? result : a.index - b.index
-    })
-    .map(({ item }) => item)
-}
 
 const displayedRows = computed(() => {
   const table = selectedTable.value
   const rows = (table?.rows ?? []) as Record<string, unknown>[]
-
   if (!table || rows.length === 0) {
     return rows
   }
-
-  const sort = sortState.value
-  if (sort) {
-    return stableSort(rows, (a, b) => compareMaybeNumber(a[sort.key], b[sort.key], sort.direction))
-  }
-
-  if (table.id === 'rekenmodel') {
-    return stableSort(rows, (a, b) => {
-      const aRank = DEFAULT_VOLUMEN_RANK.get(normalizeVolumenLabel(a.volumen))
-      const bRank = DEFAULT_VOLUMEN_RANK.get(normalizeVolumenLabel(b.volumen))
-
-      const aHas = typeof aRank === 'number'
-      const bHas = typeof bRank === 'number'
-
-      if (aHas && bHas) {
-        return aRank - bRank
-      }
-      if (aHas) {
-        return -1
-      }
-      if (bHas) {
-        return 1
-      }
-
-      const aLabel = normalizeVolumenLabel(a.volumen)
-      const bLabel = normalizeVolumenLabel(b.volumen)
-      return aLabel.localeCompare(bLabel, 'nl')
-    })
-  }
-
-  return rows
+  return sortTableRows(table.id, rows, sortState.value)
 })
 
 const columns = computed(() =>

@@ -1,8 +1,8 @@
 import type { ChatStatus, UIMessage } from 'ai'
-import type { ConversationDetail } from '~/types/chat'
-import type { KengetallenWidgetSpec } from '~/types/kengetallen-widget'
+import type { ChatWidgetSpec, ConversationDetail } from '~/types/chat'
 import { stripMarkdownImages } from '~/utils/chatText'
 import { isKengetallenWidgetSpec, cloneKengetallenWidgetSpec } from '~/utils/kengetallenChart'
+import { isDataTableWidgetSpec, cloneDataTableWidgetSpec } from '~/utils/dataTable'
 
 export type ChatRole = 'user' | 'assistant'
 
@@ -10,7 +10,18 @@ export interface ChatMessage {
   id: string
   role: ChatRole
   content: string
-  widgets: KengetallenWidgetSpec[]
+  widgets: ChatWidgetSpec[]
+}
+
+function isChatWidgetSpec(value: unknown): value is ChatWidgetSpec {
+  return isKengetallenWidgetSpec(value) || isDataTableWidgetSpec(value)
+}
+
+function cloneChatWidgetSpec(spec: ChatWidgetSpec): ChatWidgetSpec {
+  if (isKengetallenWidgetSpec(spec)) {
+    return cloneKengetallenWidgetSpec(spec)
+  }
+  return cloneDataTableWidgetSpec(spec)
 }
 
 export interface ChatRequest {
@@ -25,7 +36,7 @@ interface StreamEvent {
   row_count?: number
   tools_used?: string[]
   has_widget?: boolean
-  widget?: KengetallenWidgetSpec
+  widget?: ChatWidgetSpec
 }
 
 function createMessageId() {
@@ -122,11 +133,11 @@ function applyStreamEvents(
       continue
     }
 
-    if (event.type === 'widget' && event.widget && isKengetallenWidgetSpec(event.widget)) {
+    if (event.type === 'widget' && event.widget && isChatWidgetSpec(event.widget)) {
       assistantIndexRef.value = ensureAssistantMessage(messages)
       const assistant = messages[assistantIndexRef.value]
       if (assistant) {
-        assistant.widgets = [...assistant.widgets, cloneKengetallenWidgetSpec(event.widget)]
+        assistant.widgets = [...assistant.widgets, cloneChatWidgetSpec(event.widget)]
       }
       continue
     }
@@ -183,7 +194,7 @@ export function useChatStream() {
   const uiMessages = computed(() => messages.value.map(toUIMessage))
 
   const widgetsByMessageId = computed(() => {
-    const map = new Map<string, KengetallenWidgetSpec[]>()
+    const map = new Map<string, ChatWidgetSpec[]>()
     for (const message of messages.value) {
       map.set(message.id, message.widgets)
     }
@@ -230,8 +241,8 @@ export function useChatStream() {
       role: message.role,
       content: message.content,
       widgets: (message.widgets ?? [])
-        .filter(isKengetallenWidgetSpec)
-        .map(spec => cloneKengetallenWidgetSpec(spec))
+        .filter(isChatWidgetSpec)
+        .map(spec => cloneChatWidgetSpec(spec))
     }))
   }
 

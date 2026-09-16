@@ -237,29 +237,22 @@ useSeoMeta({
 
           <template #content="{ message }">
             <div class="space-y-4">
-              <Suspense
+              <ChatMessageWidget
                 v-for="(widget, widgetIndex) in widgetsForMessage(message.id)"
                 :key="`${message.id}-widget-${widgetIndex}`"
-              >
-                <LazyChatKengetallenWidget :initial-spec="widget" />
-                <template #fallback>
-                  <ChatKengetallenWidgetSkeleton
-                    :kengetal="widget.kengetal"
-                    :gemeente-naam="widget.gemeente_naam"
-                  />
-                </template>
-              </Suspense>
+                :widget="widget"
+              />
 
               <template
                 v-for="(part, index) in message.parts"
                 :key="`${message.id}-${part.type}-${index}`"
               >
-                <p
+                <MDC
                   v-if="isTextUIPart(part) && part.text"
-                  class="whitespace-pre-wrap"
-                >
-                  {{ part.text }}
-                </p>
+                  :value="part.text"
+                  :cache-key="`${message.id}-${index}-${part.text.length}`"
+                  class="chat-markdown *:first:mt-0 *:last:mb-0"
+                />
               </template>
             </div>
           </template>
@@ -289,3 +282,33 @@ useSeoMeta({
     </template>
   </UDashboardPanel>
 </template>
+
+<style scoped>
+.chat-markdown :deep(h2) {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.chat-markdown :deep(h3) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.chat-markdown :deep(ul) {
+  margin: 0.25rem 0 0.75rem;
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.chat-markdown :deep(li) {
+  margin: 0.15rem 0;
+}
+
+.chat-markdown :deep(p) {
+  margin: 0.35rem 0;
+}
+</style>
