@@ -11,6 +11,9 @@ export interface KengetallenChartSeries {
   type_raming: string
   begroting?: string
   dashed?: boolean
+  color?: string
+  group?: string
+  legend?: string
   points: KengetallenChartPoint[]
 }
 

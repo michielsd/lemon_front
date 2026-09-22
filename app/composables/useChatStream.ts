@@ -1,6 +1,8 @@
 import type { ChatStatus, UIMessage } from 'ai'
 import type { ChatWidgetSpec, ConversationDetail } from '~/types/chat'
 import { stripMarkdownImages } from '~/utils/chatText'
+import { isBegrotingsanalyseChartSpec, cloneBegrotingsanalyseChartSpec } from '~/utils/begrotingsanalyseChart'
+import { isFinancialPositionWidgetSpec, cloneFinancialPositionWidgetSpec } from '~/utils/financialPosition'
 import { isKengetallenWidgetSpec, cloneKengetallenWidgetSpec } from '~/utils/kengetallenChart'
 import { isDataTableWidgetSpec, cloneDataTableWidgetSpec } from '~/utils/dataTable'
 
@@ -14,12 +16,21 @@ export interface ChatMessage {
 }
 
 function isChatWidgetSpec(value: unknown): value is ChatWidgetSpec {
-  return isKengetallenWidgetSpec(value) || isDataTableWidgetSpec(value)
+  return isKengetallenWidgetSpec(value)
+    || isDataTableWidgetSpec(value)
+    || isBegrotingsanalyseChartSpec(value)
+    || isFinancialPositionWidgetSpec(value)
 }
 
 function cloneChatWidgetSpec(spec: ChatWidgetSpec): ChatWidgetSpec {
   if (isKengetallenWidgetSpec(spec)) {
     return cloneKengetallenWidgetSpec(spec)
+  }
+  if (isBegrotingsanalyseChartSpec(spec)) {
+    return cloneBegrotingsanalyseChartSpec(spec)
+  }
+  if (isFinancialPositionWidgetSpec(spec)) {
+    return cloneFinancialPositionWidgetSpec(spec)
   }
   return cloneDataTableWidgetSpec(spec)
 }

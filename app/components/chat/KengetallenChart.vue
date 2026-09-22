@@ -5,9 +5,15 @@ import { VisAxis, VisLine, VisScatter, VisTooltip, VisXYContainer } from '@unovi
 import type { KengetallenChartPoint, KengetallenChartSeries } from '~/types/kengetallen-widget'
 import { formatKengetalPercent, isDashedSeries, seriesColor } from '~/utils/kengetallenChart'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   series: KengetallenChartSeries[]
-}>()
+  compact?: boolean
+}>(), {
+  compact: false
+})
+
+const chartHeight = computed(() => props.compact ? 180 : 320)
+const pointSize = computed(() => props.compact ? 5 : 8)
 
 const yDomain = computed(() => {
   const values = props.series.flatMap(entry => entry.points.map(point => point.waarde))
@@ -53,11 +59,64 @@ const tooltipTriggers = {
 function lineDashArray(entry: KengetallenChartSeries) {
   return isDashedSeries(entry) ? [6, 4] : null
 }
+
+function colorFor(entry: KengetallenChartSeries, index: number) {
+  return entry.color || seriesColor(index)
+}
+
+const legendGroups = computed(() => {
+  if (!props.series.some(entry => entry.group)) {
+    return null
+  }
+  const groups: { title: string, entries: KengetallenChartSeries[] }[] = []
+  for (const entry of props.series) {
+    const title = entry.group || entry.label
+    const existing = groups.find(group => group.title === title)
+    if (existing) {
+      existing.entries.push(entry)
+    } else {
+      groups.push({ title, entries: [entry] })
+    }
+  }
+  return groups
+})
 </script>
 
 <template>
   <div class="space-y-3">
-    <div class="flex flex-wrap gap-3 text-xs text-muted">
+    <div
+      v-if="legendGroups"
+      class="space-y-1 text-xs text-muted"
+    >
+      <div
+        v-for="group in legendGroups"
+        :key="group.title"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1"
+      >
+        <span class="font-medium text-highlighted">{{ group.title }}</span>
+        <span
+          v-for="(entry, index) in group.entries"
+          :key="entry.id"
+          class="inline-flex items-center gap-1.5"
+        >
+          <span
+            v-if="isDashedSeries(entry)"
+            class="inline-block w-4 border-t-2 border-dashed"
+            :style="{ borderColor: colorFor(entry, index) }"
+          />
+          <span
+            v-else
+            class="inline-block h-0.5 w-4"
+            :style="{ backgroundColor: colorFor(entry, index) }"
+          />
+          {{ entry.legend || entry.label }}
+        </span>
+      </div>
+    </div>
+    <div
+      v-else
+      class="flex flex-wrap gap-3 text-xs text-muted"
+    >
       <span
         v-for="(entry, index) in series"
         :key="entry.id"
@@ -79,7 +138,7 @@ function lineDashArray(entry: KengetallenChartSeries) {
 
     <ClientOnly>
       <VisXYContainer
-        :height="320"
+        :height="chartHeight"
         :y-domain="yDomain"
         class="kengetallen-chart"
       >
@@ -89,7 +148,7 @@ function lineDashArray(entry: KengetallenChartSeries) {
           :data="entry.points"
           :x="xAccessor"
           :y="yAccessor"
-          :color="seriesColor(index)"
+          :color="colorFor(entry, index)"
           :line-dash-array="lineDashArray(entry)"
         />
         <VisScatter
@@ -98,8 +157,8 @@ function lineDashArray(entry: KengetallenChartSeries) {
           :data="pointsFor(entry)"
           :x="xAccessor"
           :y="yAccessor"
-          :color="seriesColor(index)"
-          :size="8"
+          :color="colorFor(entry, index)"
+          :size="pointSize"
         />
         <VisAxis
           type="x"

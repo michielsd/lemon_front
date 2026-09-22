@@ -1,7 +1,14 @@
+import type { BegrotingsanalyseChartSpec } from '~/types/begrotingsanalyse-widget'
 import type { DataTableWidgetSpec } from '~/types/data-table-widget'
+import type { FinancialPositionWidgetSpec } from '~/types/financial-position-widget'
 import type { KengetallenWidgetSpec } from '~/types/kengetallen-widget'
 
-export type ChatWidgetSpec = KengetallenWidgetSpec | DataTableWidgetSpec
+export type ChatWidgetSpec = (
+  KengetallenWidgetSpec
+  | DataTableWidgetSpec
+  | BegrotingsanalyseChartSpec
+  | FinancialPositionWidgetSpec
+)
 
 export interface ConversationSummary {
   id: string
