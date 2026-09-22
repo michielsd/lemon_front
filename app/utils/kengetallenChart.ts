@@ -116,7 +116,7 @@ export function filterRowsForTable(
   })
 }
 
-export function formatWaarde(value: string | number | null | undefined): string {
+export function formatKengetalPercent(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') {
     return ''
   }
@@ -124,7 +124,15 @@ export function formatWaarde(value: string | number | null | undefined): string 
   if (!Number.isFinite(numeric)) {
     return String(value)
   }
-  return numeric.toLocaleString('nl-NL', { maximumFractionDigits: 4 })
+  const formatted = (numeric * 100).toLocaleString('nl-NL', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  })
+  return `${formatted}%`
+}
+
+export function formatWaarde(value: string | number | null | undefined): string {
+  return formatKengetalPercent(value)
 }
 
 export function isKengetallenWidgetSpec(value: unknown): value is KengetallenWidgetSpec {
